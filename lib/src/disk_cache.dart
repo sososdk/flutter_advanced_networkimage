@@ -1,12 +1,11 @@
-import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter_advanced_networkimage/src/utils.dart' show crc32, uid;
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'package:flutter_advanced_networkimage/src/utils.dart' show crc32;
 
 /// Stand for [getTemporaryDirectory] and
 /// [getApplicationDocumentsDirectory] in path_provider plugin.
@@ -128,6 +127,26 @@ class DiskCache {
     });
     await _checkCacheSize();
     await _commitMetaData();
+  }
+
+  Future<String> loadFile(String url) async {
+    if (_metadata == null) await _initMetaData();
+    var uId = uid(url);
+    try {
+      if (_metadata.containsKey(uId)) {
+        if (!File(_metadata[uId]['path']).existsSync()) {
+          _metadata.remove(uId);
+          await _commitMetaData();
+          return null;
+        }
+        return _metadata[uId]['path'];
+      } else {
+        return null;
+      }
+    } catch (e) {
+      if (printError) print(e);
+      return null;
+    }
   }
 
   /// Load the cache image from [DiskCache], you can use `force` to skip max age check.
